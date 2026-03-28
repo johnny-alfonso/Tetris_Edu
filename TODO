@@ -1,0 +1,48 @@
+Goals:
+- Make a Tetris Clone
+- Use raylib initially, but try to be platform/dependency independent
+
+TODO:
+
+- Make actual playfield bigger than the visual playfield. Playfield is larger than what you can see. 
+- Collisions against the playfield blocks
+- Rotations: Super Rotation System
+- Falling Tetriminos: Tetriminos moving downward automatically
+- Soft Drop
+- Delay Lock Timer: Give a grace period when the player moves or rotates the tetrimino before automatically locking the tetrimino in place
+- Count number of lines cleared
+- Clear lines / rows when there is a block in each column
+- Move wall of blocks downward after lines are cleared
+
+Stream 01
+[x] Draw a grid
+	- 10 wide
+	- 20 tall
+[x] Debug feature
+	- draw / erase blocks in playfield
+
+Stream 02
+[x] Set up different tertrimino data
+[x] Move tetriminos around the playfield
+[x] Place tetriminos in the playfield
+[x] Show some nice to know debugging stuff
+	- VS Code
+	- RemedyBG
+	- RAD Debuggger
+
+Stream 03
+[x] See thru window / transparent - Appear on top most
+[x] Add T
+[X] Color
+[x] When placing the tetrimino blocks in the playfield, we will make the blocks the colors that theyre supposed to be
+[X] Have rotations of the different tetriminos
+
+Stream 04
+[x] Fix bug in block placement
+
+Stream 05
+[x] Hot Reloading
+
+Stream 06
+[] Ghost
+[] Hard Drop

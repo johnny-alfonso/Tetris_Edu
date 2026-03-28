@@ -1,0 +1,48 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+		},
+		{
+			"path": "C:\\odin-windows-amd64-dev-2025-03\\vendor\\sdl3",
+		},
+		{
+			"path": "C:\\odin-windows-amd64-dev-2025-03\\vendor\\opengl",
+		},
+		{
+			"path": "C:\\odin-windows-amd64-dev-2025-03\\core"
+		},
+	],
+	"build_systems":
+	[
+		{
+			"name": "sublime_odin_template",
+			"cmd": "odin run .",
+			"file_regex": "^(.+)\\(([0-9]+):([0-9]+)\\) (.+)$",
+		},
+		{
+			"name": "odin build debug",
+			"cmd": ".\\build.bat",
+			"file_regex": "^(.+)\\(([0-9]+):([0-9]+)\\) (.+)$",
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "odin build debug hot reload",
+			"cmd": ".\\build_hot_reload.bat",
+			"file_regex": "^(.+)\\(([0-9]+):([0-9]+)\\) (.+)$",
+			"working_dir": "${project_path}"
+		}
+	],
+	"settings":
+	{
+		"auto_complete": true,
+		"LSP":
+		{
+			"odin":
+			{
+				"enabled": true,
+			},
+		},
+	},
+}
