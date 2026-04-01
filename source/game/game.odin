@@ -127,7 +127,7 @@ tetrimino_descriptions := [Tetrimino]Tetrimino_Description {
 				      {1,2},
 			},
 		},
-		color = rl.WHITE,
+		color = rl.GREEN,
 	},
 	.J = { 
 		rotation_shapes = [Rotation] Tetrimino_Shape {
@@ -217,6 +217,69 @@ playfield_height : int : 20
 
 screen_height : i32 = 720
 screen_width : i32 = 1280
+
+
+tetrimino_to_playfield_space :: proc(playfield_position : [2]int, tshape : Tetrimino_Shape) -> Tetrimino_Shape {
+	playfield_tetrimion_shape := Tetrimino_Shape{}
+	for block, i in tshape {
+		playfield_tetrimion_shape[i] = block + playfield_position
+	}
+	return playfield_tetrimion_shape 
+}
+
+tetrimino_block_in_playfield_space :: proc(playfield_position : [2]int, tblock : [2]int ) -> [2]int {
+	block_in_playfield_space := playfield_position + tblock
+	return block_in_playfield_space
+}
+
+playfield_block_to_screen_space_rectangle :: proc(playfield_pos : [2]f32, block_pos : [2]int, cell_size : f32) -> rl.Rectangle {
+	block_rect := rl.Rectangle {
+		playfield_pos.x + ( f32(block_pos.x)*cell_size ),
+		playfield_pos.y + ( f32(block_pos.y)*cell_size ),
+		cell_size - 1,
+		cell_size - 1,
+	}
+	return block_rect
+}
+
+playfield_position_to_screen_position :: proc(playfield_origin : [2]f32, position : [2]int, cell_size : f32) -> [2]f32 {
+	pos := [2]f32 {
+		playfield_origin.x + f32(position.x)*cell_size,
+		playfield_origin.y + f32(position.y)*cell_size,
+	}
+	return pos
+}
+
+is_block_here_or_is_wall :: proc(playfield_state : [playfield_height][playfield_width]Cell_State, pos : [2]int) -> bool {
+	block_here := true
+	within_playfield := pos.x >= 0 && pos.x < playfield_width && pos.y >= 0 && pos.y < playfield_height
+	if within_playfield {
+		block_here = playfield_state[pos.y][pos.x].active == true
+	}
+	return block_here
+}
+
+draw_block :: proc(playfield_position :[2]f32, block_pos:[2]int, cell_size : f32, color : rl.Color) {
+	block := rl.Rectangle {
+		playfield_position.x + f32(block_pos.x)*cell_size,
+		playfield_position.y + f32(block_pos.y)*cell_size,
+		cell_size-1,
+		cell_size-1,
+	}
+
+	rl.DrawRectangleRec(block, color)
+}
+
+
+place_tetrimino_in_playfield_and_reset_active_tetrimino :: proc(playfield_pos : [2]int, tshape : Tetrimino_Shape) {
+	for block_pos_in_tetrimino_space in tshape {
+		block_pos_in_playfield_space := playfield_pos + block_pos_in_tetrimino_space
+		pst.playfield_state[block_pos_in_playfield_space.y][block_pos_in_playfield_space.x].active = true
+		pst.playfield_state[block_pos_in_playfield_space.y][block_pos_in_playfield_space.x].color = tetrimino_descriptions[pst.active_tetrimino].color 
+	}
+	
+	pst.active_tetrimino_position = {}
+}
 
 @(export)
 update_and_render :: proc() {
@@ -337,20 +400,13 @@ update_and_render :: proc() {
 
 	
 
-	{ // draw blocks
+	{ // draw blocks in playfield
 		for row in 0..<playfield_height {
 			for col in 0..<playfield_width {
 				cell := pst.playfield_state[row][col] 
 				if cell.active == true {
-					block := rl.Rectangle {
-						playfield_position.x + f32(col)*cell_size,
-						playfield_position.y + f32(row)*cell_size,
-						cell_size-1,
-						cell_size-1,
-					}
-
-					rl.DrawRectangleRec(block, cell.color)
-
+					block_pos := [2]int{col, row}
+					draw_block(playfield_position, block_pos, cell_size, cell.color)
 				}
 			}
 		}
@@ -371,50 +427,113 @@ update_and_render :: proc() {
 			pst.active_tetrimino_position.x += 1
 		}
 
-		if rl.IsKeyPressed(.ENTER) {
+		place_tetrimino_in_playfield_and_spawn_new_active_tetrimino := rl.IsKeyPressed(.ENTER)
+		if place_tetrimino_in_playfield_and_spawn_new_active_tetrimino {
+			place_tetrimino_in_playfield_and_reset_active_tetrimino(
+				pst.active_tetrimino_position, 
+				tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation]
+			)
+		}
+
+		{ // make sure tetrimino stays inside playfield
 			for block_pos_in_tetrimino_space in tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation] {
 				block_pos_in_playfield_space := pst.active_tetrimino_position + block_pos_in_tetrimino_space
-				pst.playfield_state[block_pos_in_playfield_space.y][block_pos_in_playfield_space.x].active = true
-				pst.playfield_state[block_pos_in_playfield_space.y][block_pos_in_playfield_space.x].color = tetrimino_descriptions[pst.active_tetrimino].color 
-			}
+
+				if block_pos_in_playfield_space.x < 0 {
+					pst.active_tetrimino_position.x += 1
+				}
+
+				if block_pos_in_playfield_space.x > playfield_width - 1 {
+					pst.active_tetrimino_position.x -= 1
+				}
+
+				if block_pos_in_playfield_space.y < 0 {
+					pst.active_tetrimino_position.y += 1
+				}
+
+				if block_pos_in_playfield_space.y > playfield_height - 1 {
+					pst.active_tetrimino_position.y -= 1
+				}
+			}	
+		}
 			
-			pst.active_tetrimino_position = {}
+
+		tetrimino_in_playfield_space := tetrimino_to_playfield_space(
+			pst.active_tetrimino_position, 
+			tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation]
+		)
+
+		for block_pos_in_playfield_space in tetrimino_in_playfield_space {
+			block := playfield_block_to_screen_space_rectangle(playfield_position, block_pos_in_playfield_space, cell_size)
+			rl.DrawRectangleRec(block, tetrimino_descriptions[pst.active_tetrimino].color)
 		}
 
-		for block_pos_in_tetrimino_space in tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation] {
-			block_pos_in_playfield_space := pst.active_tetrimino_position + block_pos_in_tetrimino_space
+	}
 
-			if block_pos_in_playfield_space.x < 0 {
-				pst.active_tetrimino_position.x += 1
+	{ // ghost
+
+		closest_free_row : int = 20
+		closest_intersecting_block_y : int = 0
+		for tetrimino_block in tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation] {
+			playfield_block := tetrimino_block_in_playfield_space(pst.active_tetrimino_position, tetrimino_block)
+
+			for y_test := playfield_block.y; y_test <= 20; y_test += 1 {
+				block_test := [2]int{ playfield_block.x, y_test}
+				intersects := is_block_here_or_is_wall(pst.playfield_state, block_test)
+				if intersects {
+					is_closer := y_test - 1 <= closest_free_row
+					if is_closer {
+						closest_free_row = y_test - 1
+						is_intersecting_block_closer := tetrimino_block.y > closest_intersecting_block_y
+						if is_intersecting_block_closer {
+							closest_intersecting_block_y = tetrimino_block.y
+						}
+					}
+					break
+				}
 			}
 
-			if block_pos_in_playfield_space.x > playfield_width - 1 {
-				pst.active_tetrimino_position.x -= 1
+		}
+		
+		{
+			ghost_tetrimino_pos := [2]int {
+				pst.active_tetrimino_position.x,
+				closest_free_row - closest_intersecting_block_y,
 			}
 
-			if block_pos_in_playfield_space.y < 0 {
-				pst.active_tetrimino_position.y += 1
+			ghost_tetrimino_pos_in_screen_space := playfield_position_to_screen_position(
+				playfield_position,
+				ghost_tetrimino_pos,
+				cell_size,
+			)
+
+			rl.DrawCircleV(ghost_tetrimino_pos_in_screen_space, 4, rl.WHITE)
+			ghost_in_playfield_space := tetrimino_to_playfield_space(
+				ghost_tetrimino_pos,
+				tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation],
+			) 
+
+			for block_pos_in_playfield_space in ghost_in_playfield_space {
+				block := playfield_block_to_screen_space_rectangle(playfield_position, block_pos_in_playfield_space, cell_size)
+				rl.DrawRectangleLinesEx(
+					block,
+					4,
+					tetrimino_descriptions[pst.active_tetrimino].color,
+				)
 			}
 
-			if block_pos_in_playfield_space.y > playfield_height - 1 {
-				pst.active_tetrimino_position.y -= 1
+			hard_drop := rl.IsKeyPressed(.SPACE)
+			if hard_drop {
+				place_tetrimino_in_playfield_and_reset_active_tetrimino(
+					ghost_tetrimino_pos,
+					tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation]
+				)
+				// ghost_tetrimino_in_playfield_space := tetrimino_to_playfield_space(ghost_tetrimino_pos, tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation])
+				// for ghost_block_playfield in ghost_tetrimino_in_playfield_space {
+
+				// }
 			}
 		}
-
-
-		for block_pos_in_tetrimino_space in tetrimino_descriptions[pst.active_tetrimino].rotation_shapes[pst.active_tetrimino_rotation] {
-			
-			block_pos_in_playfield_space := pst.active_tetrimino_position + block_pos_in_tetrimino_space
-
-			block_to_draw := rl.Rectangle {
-				playfield_position.x + f32(block_pos_in_playfield_space.x)*cell_size,
-				playfield_position.y + f32(block_pos_in_playfield_space.y)*cell_size,
-				cell_size-1,
-				cell_size-1,				
-			}
-			rl.DrawRectangleRec(block_to_draw, tetrimino_descriptions[pst.active_tetrimino].color)
-		}
-
 	}
 
 	{
