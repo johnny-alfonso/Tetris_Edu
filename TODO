@@ -44,5 +44,12 @@ Stream 05
 [x] Hot Reloading
 
 Stream 06
-[] Ghost
-[] Hard Drop
+[X] Ghost
+[X] Hard Drop
+
+Stream 07
+[X] Clean up some playfield stuff
+	- place blocks in the playfield in a way where i avoid the chance of every writing to OOB memory / inaccurate location
+[X] Do Left/Right/Wall collisions when moving the piece left or right
+[X] Fix the I piece rotation entries/records
+[] Super Rotation System
