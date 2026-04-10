@@ -52,4 +52,13 @@ Stream 07
 	- place blocks in the playfield in a way where i avoid the chance of every writing to OOB memory / inaccurate location
 [X] Do Left/Right/Wall collisions when moving the piece left or right
 [X] Fix the I piece rotation entries/records
+
+Stream 08
 [] Super Rotation System
+
+Stream 09
+[] Fix ghost bug
+
+
+
+BE RIGHT BACK!!!!

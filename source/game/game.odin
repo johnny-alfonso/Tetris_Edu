@@ -13,7 +13,7 @@ Blocks_In_Tetrimino :: 4
 
 
 Rotation :: enum {
-	Zero, Right, Left, Two,
+	Zero, Right, Two, Left
 }
 
 
@@ -51,11 +51,11 @@ tetrimino_descriptions := [Tetrimino_Type]Tetrimino_Description {
 				{0,0}, {1,0},
 				{0,1}, {1,1},
 			},
-			.Left = Tetrimino_Shape{
+			.Two = Tetrimino_Shape{
 				{0,0}, {1,0},
 				{0,1}, {1,1},
 			},
-			.Two = Tetrimino_Shape{
+			.Left = Tetrimino_Shape{
 				{0,0}, {1,0},
 				{0,1}, {1,1},
 			},
@@ -74,10 +74,10 @@ tetrimino_descriptions := [Tetrimino_Type]Tetrimino_Description {
 				{2,2},
 				{2,3},
 			},
-			.Left = Tetrimino_Shape{
+			.Two = Tetrimino_Shape{
 				{0,2}, {1,2}, {2,2}, {3,2}
 			},
-			.Two = Tetrimino_Shape{
+			.Left = Tetrimino_Shape{
 				{1,0},
 				{1,1},
 				{1,2},
@@ -97,12 +97,12 @@ tetrimino_descriptions := [Tetrimino_Type]Tetrimino_Description {
 					{1,1},{2,1},
 					{1,2},	   	            
 		   },
-		   .Left = Tetrimino_Shape{
+		   .Two = Tetrimino_Shape{
 
 		   		{0,1},{1,1},
 		   			  {1,2},{2,2},
 		   },
-		   .Two = Tetrimino_Shape{
+		   .Left = Tetrimino_Shape{
 		   			  {1,0},
 		   		{0,1},{1,1},
 		   		{0,2},
@@ -121,12 +121,12 @@ tetrimino_descriptions := [Tetrimino_Type]Tetrimino_Description {
 				   {1,1},{2,1},
 				         {2,2},
 			},
-			.Left = Tetrimino_Shape{
+			.Two = Tetrimino_Shape{
 
 					  {1,1},{2,1},
 				{0,2},{1,2}
 			},
-			.Two = Tetrimino_Shape{
+			.Left = Tetrimino_Shape{
 				{0,0},
 				{0,1},{1,1},
 				      {1,2},
@@ -145,12 +145,12 @@ tetrimino_descriptions := [Tetrimino_Type]Tetrimino_Description {
 					{1,1},
 					{1,2},
 			},
-			.Left = Tetrimino_Shape{
+			.Two = Tetrimino_Shape{
 
 				{0,1},{1,1},{2,1},
 				            {2,2},
 			},
-			.Two = Tetrimino_Shape{
+			.Left = Tetrimino_Shape{
 					  {1,0},
 					  {1,1},
 				{0,2},{1,2},	
@@ -170,12 +170,12 @@ tetrimino_descriptions := [Tetrimino_Type]Tetrimino_Description {
 				     {1,1},
 				     {1,2},{2,2},
 			},
-			.Left = Tetrimino_Shape{
+			.Two = Tetrimino_Shape{
 
 				{0,1},{1,1},{2,1},
 				{0,2},
 			},
-			.Two = Tetrimino_Shape{
+			.Left = Tetrimino_Shape{
 				{0,0},{1,0},
 				      {1,1},
 				      {1,2},
@@ -195,11 +195,11 @@ tetrimino_descriptions := [Tetrimino_Type]Tetrimino_Description {
 				     {1,1},{2,1},
 				     {1,2},
 			},
-			.Left = Tetrimino_Shape{
+			.Two = Tetrimino_Shape{
 					{0,1},{1,1},{2,1},
 					      {1,2},
 			},
-			.Two = Tetrimino_Shape{
+			.Left = Tetrimino_Shape{
 					  {1,0},
 				{0,1},{1,1},
 				      {1,2}
@@ -366,6 +366,110 @@ intersecting_with_block_or_wall :: proc(tetrimino : Tetrimino) -> bool {
 	return intersected
 }
 
+NUM_WALL_KICK_TEST_OFFSETS :: 5
+
+Wall_Kick_Data :: struct {
+	old, new : Rotation,
+	test_offsets : [NUM_WALL_KICK_TEST_OFFSETS][2]int,
+}
+
+super_rotation_system :: proc(
+	playfield_state : ^[playfield_height][playfield_width]Cell_State,
+	active_tetrimino : ^Tetrimino,
+	new_rotation : Rotation 
+) {
+	old_rotation := active_tetrimino.rotation
+
+	NUM_ROTATION_TRANSITIONS :: 8
+
+	wall_kick_dataset := [NUM_ROTATION_TRANSITIONS]Wall_Kick_Data{}
+
+	switch active_tetrimino.type {
+		case .J, .L, .S, .T, .Z: {
+			wall_kick_dataset = [NUM_ROTATION_TRANSITIONS]Wall_Kick_Data {
+				{old = .Zero, new = .Right, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2},}
+				},
+				{old = .Right, new = .Zero, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{0, 0}, {1, 0}, {1,1}, { 0,-2}, {1,-2},}
+				},
+				{old = .Right, new = .Two, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {+1, 0}, {+1,1}, { 0,-2}, {+1,-2},}
+				},
+				{old = .Two, new = .Right, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {-1, 0}, {-1,-1}, { 0,2}, {-1,2},}
+				},
+				{old = .Two, new = .Left, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {+1, 0}, {+1,-1}, { 0,2}, {+1,2},}
+				},
+				{old = .Left, new = .Two, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {-1, 0}, {-1,1}, { 0,-2}, {-1,-2},}
+				},
+				{old = .Left, new = .Zero, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {-1, 0}, {-1, 1}, { 0,-2}, {-1,-2},}
+				},
+				{old = .Zero, new = .Left, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {+1, 0}, {+1,-1}, { 0,2}, {+1,2},}
+				},
+			}
+		}
+		case .I: {
+			wall_kick_dataset = [NUM_ROTATION_TRANSITIONS]Wall_Kick_Data {
+				{old = .Zero, new = .Right, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{0, 0}, {-2, 0}, {1, 0}, {-2, 1}, {1, -2},}
+				},
+				{old = .Right, new = .Zero, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {+2, 0}, {-1, 0}, {+2,-1}, {-1,2},}
+				},
+				{old = .Right, new = .Two, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {-1, 0}, {+2, 0}, {-1,-2}, {+2,1},}
+				},
+				{old = .Two, new = .Right, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{
+					{ 0, 0}, {+1, 0}, {-2, 0}, {+1,2}, {-2,-1},}
+				},
+				{old = .Two, new = .Left, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {+2, 0}, {-1, 0}, {+2,-1}, {-1,2},}
+				},
+				{old = .Left, new = .Two, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {-2, 0}, {+1, 0}, {-2,1}, {+1,-2},}
+				},
+				{old = .Left, new = .Zero, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					 { 0, 0}, {+1, 0}, {-2, 0}, {+1,2}, {-2,-1},}
+				},
+				{old = .Zero, new = .Left, test_offsets = [NUM_WALL_KICK_TEST_OFFSETS][2]int{ 
+					{ 0, 0}, {-1, 0}, {+2, 0}, {-1,-2}, {+2,1},}
+				},
+			}
+		}
+		case .O: {}
+	}
+
+	wall_kick_data := Wall_Kick_Data{}
+
+	for wkd in wall_kick_dataset {
+		is_matching_rotation_transition := old_rotation == wkd.old &&
+			new_rotation == wkd.new
+		if is_matching_rotation_transition {
+			wall_kick_data = wkd
+		} 
+	}
+
+	
+	for offset in wall_kick_data.test_offsets {
+		test_tetrimino := active_tetrimino^
+		test_tetrimino.pos += offset
+		test_tetrimino.rotation = new_rotation
+		tshape_pspace := tetrimino_shape_in_playfield_space(test_tetrimino)
+		is_valid_position := !intersecting_with_block_or_wall(test_tetrimino)
+		if is_valid_position {
+			active_tetrimino.pos = test_tetrimino.pos
+			active_tetrimino.rotation = test_tetrimino.rotation
+			break
+		}
+		
+	}
+}
+
 
 @(export)
 update_and_render :: proc() {
@@ -392,16 +496,28 @@ update_and_render :: proc() {
 	if rl.IsKeyPressed(.J) do pst.active_tetrimino.type = .J
 	if rl.IsKeyPressed(.T) do pst.active_tetrimino.type = .T
 
+	old_active_tetrimino_rotation := pst.active_tetrimino.rotation
+	new_active_tetrimino_rotation := old_active_tetrimino_rotation
+
 	if rl.IsKeyPressed(.Q) {
 		new_rotation_i := int(pst.active_tetrimino.rotation)
 		new_rotation_i -= 1
 		new_rotation_i %%= len(Rotation)
-		pst.active_tetrimino.rotation = Rotation(new_rotation_i)
+		new_active_tetrimino_rotation = Rotation(new_rotation_i)
 	} else if rl.IsKeyPressed(.W) {
 		new_rotation_i := int(pst.active_tetrimino.rotation)
 		new_rotation_i += 1
 		new_rotation_i %%= len(Rotation)
-		pst.active_tetrimino.rotation = Rotation(new_rotation_i)
+		new_active_tetrimino_rotation = Rotation(new_rotation_i)
+	}
+
+	did_want_to_rotate := old_active_tetrimino_rotation != new_active_tetrimino_rotation
+	if did_want_to_rotate {
+		super_rotation_system(
+			&pst.playfield_state, 
+			&pst.active_tetrimino,
+			new_active_tetrimino_rotation,
+		)	
 	}
 
 
@@ -558,7 +674,6 @@ update_and_render :: proc() {
 			block := playfield_block_to_screen_space_rectangle(playfield_position, block_pos_in_playfield_space, cell_size)
 			rl.DrawRectangleRec(block, tetrimino_descriptions[pst.active_tetrimino.type].color)
 		}
-
 	}
 
 	{ // ghost
