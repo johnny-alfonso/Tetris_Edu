@@ -32,8 +32,10 @@ Tetrimino :: struct {
 	rotation : Rotation,
 }
 
+Playfield :: [playfield_height][playfield_width]Cell_State
+
 Persistent_State :: struct {
-	playfield_state : [playfield_height][playfield_width]Cell_State,
+	playfield_state : Playfield,
 	active_tetrimino : Tetrimino,
 	show_window_as_transparent : bool,
 }
@@ -276,15 +278,22 @@ draw_block :: proc(playfield_position :[2]f32, block_pos:[2]int, cell_size : f32
 }
 
 
-set_playfield_cell_state :: proc(
-	playfield_state : ^[playfield_height][playfield_width]Cell_State, 
-	x, y : int,
-	active : bool, color : rl.Color,
-) {
+
+
+playfield_get_cell_state ::proc(playfield_state : ^Playfield, x, y : int) -> Cell_State{
+	cell_state := Cell_State{}
 	within_playfield := x >= 0 && x < playfield_width && y >= 0 && y < playfield_height
 	if within_playfield {
-		playfield_state[y][x].active = active
-		playfield_state[y][x].color = color
+		cell_state = playfield_state[y][x]
+	} 
+	return cell_state
+}
+
+playfield_set_cell_state :: proc(playfield_state : ^Playfield, x, y : int, cell_state : Cell_State) {
+	within_playfield := x >= 0 && x < playfield_width && y >= 0 && y < playfield_height
+	if within_playfield {
+		playfield_state[y][x].active = cell_state.active
+		playfield_state[y][x].color = cell_state.color
 	} 
 }
 
@@ -294,10 +303,11 @@ playfield_place_block :: proc(
 	x, y : int,
 	color : rl.Color,
 ) { 
-	set_playfield_cell_state(
+	cell_state := Cell_State{true, color}
+	playfield_set_cell_state(
 		&pst.playfield_state,
 		x, y,
-		true, color
+		cell_state
 	)
 }
 
@@ -305,17 +315,13 @@ playfield_remove_block :: proc(
 	playfield_state : ^[playfield_height][playfield_width]Cell_State, 
 	x, y : int
 ) {
-	set_playfield_cell_state(
+	cell_state := Cell_State{false, rl.GRAY}
+	playfield_set_cell_state(
 		&pst.playfield_state,
 		x, y,
-		false, rl.GRAY
+		cell_state
 	)	
 }
-
-// place_tetrimino_in_playfield_and_reset_active_tetrimino(
-// 				&pst.playfield_state,
-// 				&pst.active_tetrimino,	
-// 			)
 
 get_tetrimino_color ::proc (tetrimino : Tetrimino) -> rl.Color {
 	tcolor := tetrimino_descriptions[tetrimino.type].color
@@ -679,6 +685,7 @@ update_and_render :: proc() {
 	{ // ghost
 
 		closest_free_row : int = 20
+		closest_distance : int = 20
 		closest_intersecting_block_y : int = 0
 		for tetrimino_block in tetrimino_descriptions[pst.active_tetrimino.type].rotation_shapes[pst.active_tetrimino.rotation] {
 			playfield_block := tetrimino_block_in_playfield_space(pst.active_tetrimino.pos, tetrimino_block)
@@ -687,15 +694,14 @@ update_and_render :: proc() {
 				block_test := [2]int{ playfield_block.x, y_test}
 				intersects := is_block_here_or_is_wall(pst.playfield_state, block_test)
 				if intersects {
-					is_closer := y_test - 1 <= closest_free_row
+					last_free_row := y_test - 1
+					distance := last_free_row - playfield_block.y
+					is_closer := distance <= closest_distance
 					if is_closer {
-						closest_free_row = y_test - 1
-						is_intersecting_block_closer := tetrimino_block.y > closest_intersecting_block_y
-						if is_intersecting_block_closer {
-							closest_intersecting_block_y = tetrimino_block.y
-						}
+						closest_free_row = last_free_row
+						closest_distance = distance
+						closest_intersecting_block_y = tetrimino_block.y
 					}
-					break
 				}
 			}
 
@@ -737,6 +743,45 @@ update_and_render :: proc() {
 				)
 			}
 		}
+	}
+
+	{ // row clearing
+		rows_cleared : [dynamic; 4]int
+
+		for y in 0..<playfield_height {
+			num_minos_in_row := 0
+			for x in 0..<playfield_width {
+				if is_block_here_or_is_wall(pst.playfield_state, [2]int{x, y}) {
+					num_minos_in_row += 1
+				}
+			}
+
+			is_row_filled := num_minos_in_row == playfield_width
+			if is_row_filled {
+				append(&rows_cleared, y)
+			} 
+		}
+
+		// clearing
+		for y in rows_cleared {
+			for x in 0..<playfield_width {
+				playfield_remove_block(&pst.playfield_state, x, y)
+			}
+		}
+
+		// moving minos downward
+		for row_cleared in rows_cleared {
+			for y := row_cleared; y >= 0; y -= 1 {
+				for x in 0..<playfield_width {
+					curr_pos := [2]int{x, y}
+					above_pos := [2]int{x, y - 1}
+					above_cell := playfield_get_cell_state(&pst.playfield_state, above_pos.x, above_pos.y)
+					playfield_set_cell_state(&pst.playfield_state, curr_pos.x, curr_pos.y, above_cell)
+				}
+			} 
+		}
+
+
 	}
 
 	{

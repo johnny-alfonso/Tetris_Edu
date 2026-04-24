@@ -1,14 +1,14 @@
 package main_hot_reload
 
 import "core:dynlib"
-import "core:os/os2"
 import "core:os"
 import "core:fmt"
+import "core:time"
 
 Game_Api :: struct {
 	__handle : rawptr,
 	version : int,
-	modification_time : os.File_Time,
+	modification_time : time.Time,
 	init : proc(),
 	should_run : proc() -> bool,
 	update_and_render : proc(),
@@ -33,7 +33,7 @@ reload_library :: proc(game_api : ^Game_Api) -> (ok : bool) {
 	if modification_time_error == os.ERROR_NONE {
 		dst_dll_filename := fmt.tprintf(DLL_DIR + DLL_NAME + "_{0}.dll", new_api_version)
 
-		copy_err := os2.copy_file(dst_dll_filename, src_dll_filename)
+		copy_err := os.copy_file(dst_dll_filename, src_dll_filename)
 		
 		if copy_err == nil {
 			nsymbols, load_ok := dynlib.initialize_symbols(game_api, dst_dll_filename)
