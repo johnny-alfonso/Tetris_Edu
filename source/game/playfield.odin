@@ -10,8 +10,10 @@ Cell_State :: struct {
 	color : rl.Color,
 }
 
+playfield_starting_row : int : 20
 playfield_width : int : 10
-playfield_height : int : 20
+playfield_height : int : 40
+playfield_visual_height : int : 20
 
 
 playfield_is_block_or_wall_here :: proc(playfield_state : [playfield_height][playfield_width]Cell_State, pos : [2]int) -> bool {

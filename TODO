@@ -5,9 +5,6 @@ Goals:
 TODO:
 
 
-- Soft Drop
-- Delay Lock Timer: Give a grace period when the player moves or rotates the tetrimino before automatically locking the tetrimino in place
-- Count number of lines cleared
 
 
 Session 01
@@ -71,9 +68,17 @@ Session 10
 
 
 Session 11
-[] Make Playfield larger than visual playfield
-[] Game over / reset playfield
-[] Falling Tetriminos: Tetriminos moving downward automatically, and then lock into place when they reach another block
+[x] Make Playfield larger than visual playfield
+[x] Game over / reset playfield
+[x] Make sure tetriminos start at zero rotation position and centered
+[x] Falling Tetriminos: Tetriminos moving downward automatically, and then lock into place when they reach another block
+[x] Fast falling / Soft drop
+[x] Horizontal move timers
 
+
+Session 12
+[] Hold Piece
+[] 1st iteration of lock delay: Give a grace period when the player moves or rotates the tetrimino before automatically locking the tetrimino in place
+[] Count number of lines cleared
 
 
